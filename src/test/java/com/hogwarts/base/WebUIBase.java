@@ -15,6 +15,7 @@ import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 public abstract class WebUIBase {
     private Logger logger = Logger.getLogger(WebUIBase.class);
@@ -71,15 +72,28 @@ public abstract class WebUIBase {
     public void setUp() {
         //new一个期望对象
         DesiredCapabilities capabilities = new DesiredCapabilities();
-        //设置浏览器类型为chrome
-        capabilities.setBrowserName(BrowserType.CHROME);
-        //和hub建立通讯
+        //hub的地址
+        URL url;
+        //需要在环境变量"currentBrowser"中配置当前运行什么浏览器, 可选值"firefox","chrome"
+        setCurBrowser();
+        logger.info("Current browser is " + curBrowser);
         try {
-            remoteWebDriver = new RemoteWebDriver(new URL("http://192.168.1.103:5001/wd/hub"), capabilities);
+            url = new URL("http://192.168.1.103:5001/wd/hub");
+            if (curBrowser.equalsIgnoreCase("firefox")) {
+                capabilities.setBrowserName(curBrowser);
+                remoteWebDriver = new RemoteWebDriver(url, capabilities);
+            } else if (curBrowser.equalsIgnoreCase("chrome")) {
+                capabilities.setBrowserName(curBrowser);
+                remoteWebDriver = new RemoteWebDriver(url, capabilities);
+            } else {
+                capabilities.setBrowserName(curBrowser);
+                remoteWebDriver = new RemoteWebDriver(url, capabilities);
+            }
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
 
+        remoteWebDriver.manage().timeouts().implicitlyWait(15, TimeUnit.SECONDS);
     }
 
     @AfterEach
@@ -115,17 +129,17 @@ public abstract class WebUIBase {
 //        return prop;
 //    }
 
-//    private void setCurBrowser() {
-//        String value = System.getenv("currentBrowser");
-//        if (value == null || value.equalsIgnoreCase("")) {
-//            return;
-//        }
-//
-//        if (value.equalsIgnoreCase("firefox") || value.equalsIgnoreCase("chrome")
-//                || value.equalsIgnoreCase("nogui")) {
-//            curBrowser = value.toLowerCase();
-//        }
-//    }
+    private void setCurBrowser() {
+        String value = System.getenv("currentBrowser");
+        if (value == null || value.equalsIgnoreCase("")) {
+            return;
+        }
+
+        if (value.equalsIgnoreCase("firefox") || value.equalsIgnoreCase("chrome")
+                || value.equalsIgnoreCase("nogui")) {
+            curBrowser = value.toLowerCase();
+        }
+    }
 
     protected void wait5s() {
         try {
